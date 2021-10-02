@@ -1,4 +1,8 @@
-# Monsieur Cuisine instrumentation
+# Monsieur Cuisine connect instrumentation
+
+[![Crates.io](https://img.shields.io/crates/v/monsieurcc.svg)](https://crates.io/crates/monsieurcc)
+[![Docs.rs](https://docs.rs/monsieurcc/badge.svg)](https://docs.rs/monsieurcc)
+[![CI](https://github.com/tuxuser/monsieurcc-rs/workflows/CI/badge.svg)](https://github.com/tuxuser/monsieurcc-rs/actions)
 
 WIP
 

@@ -16,7 +16,7 @@ pub enum NutrientType {
     Calories,
     Protein,
     Carbohydrate,
-    Fat
+    Fat,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -34,7 +34,6 @@ pub enum StepMode {
     Steaming,
     End,
 }
-
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct RecipeIds {
@@ -164,37 +163,27 @@ pub struct Ingredient {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use rstest::*;
     use crate::tests;
+    use rstest::*;
 
     #[rstest]
     #[case::beta("recipe_all_beta.json", 1)]
     #[case::default("recipe_all_default.json", 1)]
     #[case::live("recipe_all_live.json", 1)]
-    fn deserialize_recipes_all(
-        #[case] filename: &str,
-        #[case] expected_len: usize,
-    ) {
-        let json = tests::get_testdata(filename)
-            .expect("Failed to get testdata");
-        
-        let res: Vec<Recipe> = serde_json::from_slice(&json)
-            .expect("Failed to deserialize");
+    fn deserialize_recipes_all(#[case] filename: &str, #[case] expected_len: usize) {
+        let json = tests::get_testdata(filename).expect("Failed to get testdata");
+
+        let res: Vec<Recipe> = serde_json::from_slice(&json).expect("Failed to deserialize");
 
         assert_eq!(res.len(), expected_len);
     }
 
     #[rstest]
     #[case("recipe_single_25011.json", 25011)]
-    fn deserialize_recipe_single(
-        #[case] filename: &str,
-        #[case] expected_id: i64,
-    ) {
-        let json = tests::get_testdata(filename)
-            .expect("Failed to get testdata");
-        
-        let res: Recipe = serde_json::from_slice(&json)
-            .expect("Failed to deserialize");
+    fn deserialize_recipe_single(#[case] filename: &str, #[case] expected_id: i64) {
+        let json = tests::get_testdata(filename).expect("Failed to get testdata");
+
+        let res: Recipe = serde_json::from_slice(&json).expect("Failed to deserialize");
 
         assert_eq!(res.data.id, expected_id);
     }

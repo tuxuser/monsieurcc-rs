@@ -1,13 +1,13 @@
 use crate::{schemas, Result};
-use reqwest::header::ACCEPT_LANGUAGE;
 #[cfg(test)]
 use mockito;
+use reqwest::header::ACCEPT_LANGUAGE;
 
 #[derive(Debug)]
 pub enum RecipeType {
     Default,
     Live,
-    Beta
+    Beta,
 }
 
 impl ToString for RecipeType {
@@ -31,21 +31,19 @@ impl Api {
     ///
     /// Language is provided in ISO 639-1 format
     //  (e.g. "de", "it", "fr", "pl", "en", "es")
-    fn new(language: &str) -> Self {
+    pub fn new(language: &str) -> Self {
         Self {
             session: reqwest::Client::new(),
-            default_language: language.to_string()
+            default_language: language.to_string(),
         }
     }
 }
 
 /// Helpers
 impl Api {
-    const BASE_URL: &'static str = "https://mc20.monsieur-cuisine.com";
-
     fn create_url(path: &str) -> Result<reqwest::Url> {
         #[cfg(not(test))]
-        let base = reqwest::Url::parse(Api::BASE_URL)?;
+        let base = reqwest::Url::parse("https://mc20.monsieur-cuisine.com")?;
 
         #[cfg(test)]
         let base = reqwest::Url::parse(&mockito::server_url())?;
@@ -60,13 +58,8 @@ impl Api {
     pub async fn get_apk_updates(&self) -> Result<Vec<String>> {
         let url = Api::create_url("/666a60bc-0ce2-4878-9e3b-23ba3ceaba5a/versions.txt")?;
 
-        let result = self.session
-            .get(url)
-            .send()
-            .await?
-            .text()
-            .await?;
-        
+        let result = self.session.get(url).send().await?.text().await?;
+
         let apks = result
             .split('\n')
             .map(|x| x.to_owned())
@@ -77,14 +70,12 @@ impl Api {
 
     /// Download a file, received by apk updates endpoint
     pub async fn download_file(&self, filename: &str) -> Result<Vec<u8>> {
-        let url = Api::create_url(&format!("/666a60bc-0ce2-4878-9e3b-23ba3ceaba5a/{}", filename))?;
+        let url = Api::create_url(&format!(
+            "/666a60bc-0ce2-4878-9e3b-23ba3ceaba5a/{}",
+            filename
+        ))?;
 
-        let result = self.session
-            .get(url)
-            .send()
-            .await?
-            .bytes()
-            .await?;
+        let result = self.session.get(url).send().await?.bytes().await?;
 
         Ok(result.to_vec())
     }
@@ -93,12 +84,21 @@ impl Api {
 // Recipes
 impl Api {
     /// Helper function to wrap calls against Recipe endpoint
-    async fn get_recipe_endpoint(&self, endpoint: &str, language: Option<&str>, recipe_type: Option<RecipeType>) -> Result<reqwest::Response> {
-        let recipe_type = recipe_type.or(Some(RecipeType::Default)).unwrap().to_string();
+    async fn get_recipe_endpoint(
+        &self,
+        endpoint: &str,
+        language: Option<&str>,
+        recipe_type: Option<RecipeType>,
+    ) -> Result<reqwest::Response> {
+        let recipe_type = recipe_type
+            .or(Some(RecipeType::Default))
+            .unwrap()
+            .to_string();
         let language = language.or(Some(&self.default_language)).unwrap();
 
         let url = Api::create_url(&format!("/mcc/api/v1/recipe/{}", endpoint))?;
-        let result = self.session
+        let result = self
+            .session
             .get(url)
             .header(ACCEPT_LANGUAGE, language)
             .header("X-Recipe-Type", recipe_type)
@@ -109,32 +109,48 @@ impl Api {
     }
 
     /// Get recipe ids for particular language / recipe type
-    pub async fn get_recipe_ids(&self, language: Option<&str>, recipe_type: Option<RecipeType>) -> Result<Vec<u32>> {
-        let result = self.get_recipe_endpoint("ids", language, recipe_type)
+    pub async fn get_recipe_ids(
+        &self,
+        language: Option<&str>,
+        recipe_type: Option<RecipeType>,
+    ) -> Result<Vec<u32>> {
+        let result = self
+            .get_recipe_endpoint("ids", language, recipe_type)
             .await?
             .json::<schemas::RecipeIds>()
             .await?;
-        
+
         Ok(result.ids)
     }
 
     /// Get single recipe by id for particular language / recipe type
-    pub async fn get_recipe(&self, id: u32, language: Option<&str>, recipe_type: Option<RecipeType>) -> Result<schemas::Recipe> {
-        let result = self.get_recipe_endpoint(&id.to_string(), language, recipe_type)
+    pub async fn get_recipe(
+        &self,
+        id: u32,
+        language: Option<&str>,
+        recipe_type: Option<RecipeType>,
+    ) -> Result<schemas::Recipe> {
+        let result = self
+            .get_recipe_endpoint(&id.to_string(), language, recipe_type)
             .await?
             .json::<schemas::Recipe>()
             .await?;
-        
+
         Ok(result)
     }
 
     /// Get all recipes for particular language / recipe type
-    pub async fn get_recipes(&self, language: Option<&str>, recipe_type: Option<RecipeType>) -> Result<Vec<schemas::Recipe>> {
-        let result = self.get_recipe_endpoint("all", language, recipe_type)
+    pub async fn get_recipes(
+        &self,
+        language: Option<&str>,
+        recipe_type: Option<RecipeType>,
+    ) -> Result<Vec<schemas::Recipe>> {
+        let result = self
+            .get_recipe_endpoint("all", language, recipe_type)
             .await?
             .json::<Vec<schemas::Recipe>>()
             .await?;
-        
+
         Ok(result)
     }
 }
@@ -146,23 +162,20 @@ mod tests {
     use mockito::mock;
     use rstest::*;
 
-    fn get_default_language() -> String {
-        "de".into()
-    }
+    const DEFAULT_LANGUAGE: &str = "de";
 
     #[fixture]
     fn client() -> Api {
         Api {
             session: reqwest::Client::new(),
-            default_language: get_default_language()
+            default_language: DEFAULT_LANGUAGE.into(),
         }
     }
 
     #[rstest]
     #[tokio::test]
     async fn get_apk_updates(client: Api) {
-        let body = get_testdata("versions.txt")
-            .expect("Failed to get testdata");
+        let body = get_testdata("versions.txt").expect("Failed to get testdata");
 
         let _m = mock("GET", "/666a60bc-0ce2-4878-9e3b-23ba3ceaba5a/versions.txt")
             .with_status(200)
@@ -170,7 +183,8 @@ mod tests {
             .with_body(body)
             .create();
 
-        let res = client.get_apk_updates()
+        let res = client
+            .get_apk_updates()
             .await
             .expect("Failed to fetch apk updates");
 
@@ -180,8 +194,7 @@ mod tests {
     #[rstest]
     #[tokio::test]
     async fn get_file(client: Api) {
-        let body = get_testdata("versions.txt")
-            .expect("Failed to get testdata");
+        let body = get_testdata("versions.txt").expect("Failed to get testdata");
 
         let _m = mock("GET", "/666a60bc-0ce2-4878-9e3b-23ba3ceaba5a/dummy_file")
             .with_status(200)
@@ -189,7 +202,8 @@ mod tests {
             .with_body(body)
             .create();
 
-        let res = client.download_file("dummy_file")
+        let res = client
+            .download_file("dummy_file")
             .await
             .expect("Failed to download file");
 
@@ -211,16 +225,17 @@ mod tests {
     #[tokio::test]
     async fn get_recipe_ids(
         client: Api,
-        #[case]
-        language: Option<&str>,
-        #[case]
-        recipe_type: Option<RecipeType>,
+        #[case] language: Option<&str>,
+        #[case] recipe_type: Option<RecipeType>,
     ) {
-        let body = get_testdata("recipe_ids.json")
-            .expect("Failed to get testdata");
+        let body = get_testdata("recipe_ids.json").expect("Failed to get testdata");
 
-        let recipe_type_str = recipe_type.as_ref().or(Some(&RecipeType::Default)).unwrap().to_string();
-        let language_str = language.or(Some(&get_default_language())).unwrap().to_string();
+        let recipe_type_str = recipe_type
+            .as_ref()
+            .or(Some(&RecipeType::Default))
+            .unwrap()
+            .to_string();
+        let language_str = language.or(Some(DEFAULT_LANGUAGE)).unwrap().to_string();
 
         let _m = mock("GET", "/mcc/api/v1/recipe/ids")
             .match_header(&ACCEPT_LANGUAGE.to_string(), language_str.as_str())
@@ -230,7 +245,8 @@ mod tests {
             .with_body(body)
             .create();
 
-        let res = client.get_recipe_ids(language, recipe_type)
+        let res = client
+            .get_recipe_ids(language, recipe_type)
             .await
             .expect("Failed to get recipe ids");
 
@@ -252,16 +268,17 @@ mod tests {
     #[tokio::test]
     async fn get_recipe(
         client: Api,
-        #[case]
-        language: Option<&str>,
-        #[case]
-        recipe_type: Option<RecipeType>,
+        #[case] language: Option<&str>,
+        #[case] recipe_type: Option<RecipeType>,
     ) {
-        let body = get_testdata("recipe_single_25011.json")
-            .expect("Failed to get testdata");
+        let body = get_testdata("recipe_single_25011.json").expect("Failed to get testdata");
 
-        let recipe_type_str = recipe_type.as_ref().or(Some(&RecipeType::Default)).unwrap().to_string();
-        let language_str = language.or(Some(&get_default_language())).unwrap().to_string();
+        let recipe_type_str = recipe_type
+            .as_ref()
+            .or(Some(&RecipeType::Default))
+            .unwrap()
+            .to_string();
+        let language_str = language.or(Some(DEFAULT_LANGUAGE)).unwrap().to_string();
 
         let _m = mock("GET", "/mcc/api/v1/recipe/25011")
             .match_header(&ACCEPT_LANGUAGE.to_string(), language_str.as_str())
@@ -271,7 +288,8 @@ mod tests {
             .with_body(body)
             .create();
 
-        let res = client.get_recipe(25011, language, recipe_type)
+        let res = client
+            .get_recipe(25011, language, recipe_type)
             .await
             .expect("Failed to get recipe");
 
@@ -293,17 +311,18 @@ mod tests {
     #[tokio::test]
     async fn get_recipes_all(
         client: Api,
-        #[case]
-        language: Option<&str>,
-        #[case]
-        recipe_type: Option<RecipeType>,
+        #[case] language: Option<&str>,
+        #[case] recipe_type: Option<RecipeType>,
     ) {
-        let recipe_type_str = recipe_type.as_ref().or(Some(&RecipeType::Default)).unwrap().to_string();
-        let language_str = language.or(Some(&get_default_language())).unwrap().to_string();
+        let recipe_type_str = recipe_type
+            .as_ref()
+            .or(Some(&RecipeType::Default))
+            .unwrap()
+            .to_string();
+        let language_str = language.or(Some(DEFAULT_LANGUAGE)).unwrap().to_string();
 
         let filename = format!("recipe_all_{}.json", recipe_type_str);
-        let body = get_testdata(&filename)
-            .expect("Failed to get testdata");
+        let body = get_testdata(&filename).expect("Failed to get testdata");
 
         let _m = mock("GET", "/mcc/api/v1/recipe/all")
             .match_header(&ACCEPT_LANGUAGE.to_string(), language_str.as_str())
@@ -313,10 +332,11 @@ mod tests {
             .with_body(body)
             .create();
 
-        let res = client.get_recipes( language, recipe_type)
+        let res = client
+            .get_recipes(language, recipe_type)
             .await
             .expect("Failed to get recipe");
 
-        assert!(res.len() >= 1);
+        assert!(!res.is_empty());
     }
 }

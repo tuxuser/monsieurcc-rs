@@ -1,4 +1,21 @@
-[workspace]
-members = [
-  'mcc_api'
-]
+[package]
+name = "monsieurcc"
+version = "0.1.0"
+edition = "2018"
+description = "Monsieur cuisine connect instrumentation"
+repository = "https://github.com/tuxuser/monsieurcc-rs"
+license = "MIT"
+homepage = "https://github.com/tuxuser/monsieurcc-rs"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+reqwest = { version = "0.11", features = ["json"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+[dev-dependencies]
+http = "0.2.5"
+mockito = "0.30.0"
+rstest = "0.11"
+tokio = { version = "1", features = ["macros"] }

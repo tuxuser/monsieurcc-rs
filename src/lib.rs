@@ -1,8 +1,8 @@
 pub type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 
+pub mod api;
 pub mod db;
 pub mod schemas;
-pub mod api;
 
 #[cfg(test)]
 mod tests {
