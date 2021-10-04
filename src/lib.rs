@@ -4,6 +4,10 @@ pub mod api;
 pub mod db;
 pub mod schemas;
 
+// Re-export serde
+pub use serde;
+pub use serde_json;
+
 #[cfg(test)]
 mod tests {
     use super::Result;

@@ -1,9 +1,11 @@
+use std::str::FromStr;
+
 use crate::{schemas, Result};
 #[cfg(test)]
 use mockito;
 use reqwest::header::ACCEPT_LANGUAGE;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum RecipeType {
     Default,
     Live,
@@ -16,6 +18,22 @@ impl ToString for RecipeType {
             RecipeType::Default => "default".into(),
             RecipeType::Live => "live".into(),
             RecipeType::Beta => "beta".into(),
+        }
+    }
+}
+
+impl FromStr for RecipeType {
+    type Err = Box<dyn std::error::Error>;
+
+    fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
+        match s.to_lowercase().as_str() {
+            "default" => Ok(RecipeType::Default),
+            "live" => Ok(RecipeType::Live),
+            "beta" => Ok(RecipeType::Beta),
+            _ => {
+                let e = format!("Invalid string for RecipeType provided: {}", s);
+                Err(e.into())
+            }
         }
     }
 }
@@ -54,30 +72,26 @@ impl Api {
 
 /// APK / Android endpoints
 impl Api {
+    const DOWNLOAD_PATH: &'static str = "/666a60bc-0ce2-4878-9e3b-23ba3ceaba5a";
+
     /// Get a list of MC2 APK files available to download
     pub async fn get_apk_updates(&self) -> Result<Vec<String>> {
-        let url = Api::create_url("/666a60bc-0ce2-4878-9e3b-23ba3ceaba5a/versions.txt")?;
+        let url = Api::create_url(&format!("{}/{}", Api::DOWNLOAD_PATH, "versions.txt"))?;
 
         let result = self.session.get(url).send().await?.text().await?;
 
-        let apks = result
+        let apk_urls = result
+            .trim_end()
             .split('\n')
-            .map(|x| x.to_owned())
+            .map(|x| {
+                let url = Api::create_url(&format!("{}/{}", Api::DOWNLOAD_PATH, x))
+                    .expect("Failed to create URL");
+
+                url.to_string()
+            })
             .collect::<Vec<String>>();
 
-        Ok(apks)
-    }
-
-    /// Download a file, received by apk updates endpoint
-    pub async fn download_file(&self, filename: &str) -> Result<Vec<u8>> {
-        let url = Api::create_url(&format!(
-            "/666a60bc-0ce2-4878-9e3b-23ba3ceaba5a/{}",
-            filename
-        ))?;
-
-        let result = self.session.get(url).send().await?.bytes().await?;
-
-        Ok(result.to_vec())
+        Ok(apk_urls)
     }
 }
 
@@ -189,25 +203,6 @@ mod tests {
             .expect("Failed to fetch apk updates");
 
         assert!(res.len() == 3);
-    }
-
-    #[rstest]
-    #[tokio::test]
-    async fn get_file(client: Api) {
-        let body = get_testdata("versions.txt").expect("Failed to get testdata");
-
-        let _m = mock("GET", "/666a60bc-0ce2-4878-9e3b-23ba3ceaba5a/dummy_file")
-            .with_status(200)
-            .with_header("content-type", "application/octet-stream")
-            .with_body(body)
-            .create();
-
-        let res = client
-            .download_file("dummy_file")
-            .await
-            .expect("Failed to download file");
-
-        assert!(res.len() > 1);
     }
 
     #[rstest]
