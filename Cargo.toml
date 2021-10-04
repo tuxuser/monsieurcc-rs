@@ -9,6 +9,11 @@ homepage = "https://github.com/tuxuser/monsieurcc-rs"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+[workspace]
+members = [
+    'mcc_cli',
+]
+
 [dependencies]
 reqwest = { version = "0.11", features = ["json"] }
 serde = { version = "1", features = ["derive"] }
