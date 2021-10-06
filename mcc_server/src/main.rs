@@ -128,6 +128,23 @@ fn machine_telemetry(telemetry: String) -> NoContent {
     NoContent
 }
 
+#[post("/privacyterms", data = "<privacy_terms>")]
+fn submit_privacy_terms(privacy_terms: String) -> (Status, (ContentType, &'static str)) {
+    println!("* PRIVACY TERMS: {}", &privacy_terms);
+    (Status::Created, (ContentType::Plain, "Created"))
+}
+
+#[get("/privacyterms")]
+fn get_privacy_terms() -> (Status, (ContentType, &'static str)) {
+    (
+        Status::Ok,
+        (
+            ContentType::JSON,
+            r#"{"terms":{"data":false,"version":2,"newsletter":false}}"#,
+        ),
+    )
+}
+
 #[launch]
 fn rocket() -> _ {
     rocket::build().mount(
@@ -146,6 +163,8 @@ fn rocket() -> _ {
             remove_recipe_from_favorites,
             telemetry_event,
             machine_telemetry,
+            submit_privacy_terms,
+            get_privacy_terms,
         ],
     )
 }
