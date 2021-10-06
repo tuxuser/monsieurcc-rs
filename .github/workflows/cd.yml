@@ -12,7 +12,7 @@ jobs:
     runs-on: ${{ matrix.job.os }}
     strategy:
       matrix:
-        project: [mcc_cli]
+        project: [mcc_cli, mcc_server]
         rust: [stable]
         job:
           - os: macos-latest

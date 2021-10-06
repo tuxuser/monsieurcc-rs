@@ -160,6 +160,71 @@ pub struct Ingredient {
     pub amount: String,
 }
 
+// Non-recipe schemas
+
+#[derive(Deserialize, Serialize, Debug)]
+pub struct RegistrationRequest<'r> {
+    pub password: &'r str,
+    pub displayname: &'r str,
+    pub uid: &'r str,
+}
+
+#[derive(Deserialize, Serialize, Debug)]
+pub struct AuthenticationRequest<'r> {
+    pub username: &'r str,
+    pub password: &'r str,
+}
+
+#[derive(Deserialize, Serialize, Debug)]
+pub struct AuthenticationResponse {
+    pub token: String,
+    pub displayname: String,
+    pub lang: Option<String>,
+}
+
+#[derive(Deserialize, Serialize, Default, Debug)]
+#[serde(default, rename_all = "camelCase")]
+pub struct UserSettings {
+    lidl_data: i8,
+    lidl_newsletter: i8,
+    device_terms_ok: i8,
+    newsletter: i8,
+}
+
+#[derive(Deserialize, Serialize, Default, Debug)]
+pub struct UserData {
+    pub uid: String,
+    pub firstname: Option<String>,
+    pub lastname: Option<String>,
+    pub displayname: String,
+    pub salutation: Option<String>,
+    pub dateofbirth: Option<String>,
+    pub address: Option<String>,
+    pub zip: Option<String>,
+    pub city: Option<String>,
+    pub country: Option<String>,
+    pub settings: UserSettings,
+}
+
+#[derive(Deserialize, Serialize, Debug)]
+pub struct MachineConfig {
+    // Example: https://update32.simplexion.pm/4b606313-3631-4d5f-a856-ca0edecf0c13/
+    pub updatelocation: String,
+}
+
+#[derive(Deserialize, Serialize, Debug)]
+pub struct MachineConfigResponse {
+    /// Serial, example: 4C5BAB5600000012-0000
+    pub seserial: String,
+    pub config: MachineConfig,
+}
+
+#[derive(Deserialize, Serialize, Debug)]
+pub struct Event {
+    seserial: String,
+    data: String,
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
