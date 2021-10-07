@@ -1,4 +1,39 @@
+use std::str::FromStr;
 use serde::{Deserialize, Serialize};
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(rename_all = "lowercase")]
+pub enum RecipeType {
+    Default,
+    Live,
+    Beta,
+}
+
+impl ToString for RecipeType {
+    fn to_string(&self) -> String {
+        match self {
+            RecipeType::Default => "default".into(),
+            RecipeType::Live => "live".into(),
+            RecipeType::Beta => "beta".into(),
+        }
+    }
+}
+
+impl FromStr for RecipeType {
+    type Err = Box<dyn std::error::Error>;
+
+    fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
+        match s.to_lowercase().as_str() {
+            "default" => Ok(RecipeType::Default),
+            "live" => Ok(RecipeType::Live),
+            "beta" => Ok(RecipeType::Beta),
+            _ => {
+                let e = format!("Invalid string for RecipeType provided: {}", s);
+                Err(e.into())
+            }
+        }
+    }
+}
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]

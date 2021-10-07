@@ -1,8 +1,9 @@
 use std::path::PathBuf;
 
 use monsieurcc::{
-    api::{Api, RecipeType},
+    api::Api,
     serde_json,
+    schemas::RecipeType,
 };
 use structopt::StructOpt;
 

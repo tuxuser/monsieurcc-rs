@@ -1,42 +1,7 @@
-use std::str::FromStr;
-
-use crate::{schemas, Result};
+use crate::{Result, schemas::{self, RecipeType}};
 #[cfg(test)]
 use mockito;
 use reqwest::header::ACCEPT_LANGUAGE;
-
-#[derive(Debug, Clone)]
-pub enum RecipeType {
-    Default,
-    Live,
-    Beta,
-}
-
-impl ToString for RecipeType {
-    fn to_string(&self) -> String {
-        match self {
-            RecipeType::Default => "default".into(),
-            RecipeType::Live => "live".into(),
-            RecipeType::Beta => "beta".into(),
-        }
-    }
-}
-
-impl FromStr for RecipeType {
-    type Err = Box<dyn std::error::Error>;
-
-    fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
-        match s.to_lowercase().as_str() {
-            "default" => Ok(RecipeType::Default),
-            "live" => Ok(RecipeType::Live),
-            "beta" => Ok(RecipeType::Beta),
-            _ => {
-                let e = format!("Invalid string for RecipeType provided: {}", s);
-                Err(e.into())
-            }
-        }
-    }
-}
 
 /// Api provides a client for fetching APK updates and recipes
 pub struct Api {
