@@ -72,18 +72,18 @@ pub enum StepMode {
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct RecipeIds {
-    pub ids: Vec<u32>,
+    pub ids: Vec<i32>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Recipe {
-    pub data: Data,
+    pub data: RecipeData,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct Data {
+pub struct RecipeData {
     pub id: i64,
     pub new: i64,
     pub name: String,

@@ -92,7 +92,7 @@ impl Api {
         &self,
         language: Option<&str>,
         recipe_type: Option<RecipeType>,
-    ) -> Result<Vec<u32>> {
+    ) -> Result<Vec<i32>> {
         let result = self
             .get_recipe_endpoint("ids", language, recipe_type)
             .await?

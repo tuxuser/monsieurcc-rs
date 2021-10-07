@@ -1,6 +1,7 @@
-use crate::utils::{
+use crate::{db,schema::recipes,utils::{
     generate_auth_token, get_user_from_credentials, get_user_from_token, is_registration_valid,
-};
+}};
+use diesel::{RunQueryDsl, query_dsl::methods::SelectDsl};
 use monsieurcc::schemas::{
     AuthenticationRequest, AuthenticationResponse, Event, MachineConfig, MachineConfigResponse,
     Recipe, RecipeIds, RegistrationRequest, UserData, UserSettings,
@@ -95,17 +96,48 @@ fn remove_recipe_from_favorites(_recipe_id: u32) -> NoContent {
 }
 
 #[get("/recipe/all")]
-fn get_recipe_all() -> Result<Json<Vec<Recipe>>, Unauthorized<&'static str>> {
+async fn get_recipe_all(db: db::DbConn) -> Result<Json<Vec<Recipe>>, Unauthorized<&'static str>> {
     // TODO: Check X-Recipe-Type header
-    let response = vec![];
-    Ok(Json(response))
+    let result: Result<Vec<String>, diesel::result::Error> = db.run(move |conn| {
+        recipes::table
+            .select(recipes::json_data)
+            .load(conn)
+    }).await;
+
+    let recipes = match result {
+        Ok(recipe_strs) => {
+            recipe_strs.iter()
+                .map(|s| {
+                    serde_json::from_str(&s).unwrap()
+                })
+                .collect()
+        },
+        Err(_) => {
+            return Err(Unauthorized(Some("Crap...")));
+        }
+    };
+
+    Ok(Json(recipes))
 }
 
 #[get("/recipe/ids")]
-fn get_recipe_ids() -> Result<Json<RecipeIds>, Unauthorized<&'static str>> {
-    let response = RecipeIds { ids: vec![] };
+async fn get_recipe_ids(db: db::DbConn) -> Result<Json<RecipeIds>, Unauthorized<&'static str>> {
+    let result: Result<Vec<i32>, diesel::result::Error> = db.run(move |conn| {
+        recipes::table
+            .select(recipes::id)
+            .load(conn)
+    }).await;
 
-    Ok(Json(response))
+    let recipe_ids = match result {
+        Ok(recipe_ids) => {
+            RecipeIds { ids: recipe_ids }
+        },
+        Err(_) => {
+            return Err(Unauthorized(Some("Crap...")));
+        }
+    };
+
+    Ok(Json(recipe_ids))
 }
 
 #[get("/recipe/<_id>")]

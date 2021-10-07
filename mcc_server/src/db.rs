@@ -1,12 +1,10 @@
 use crate::schema::*;
-use rocket::{Rocket, Build};
 use rocket_sync_db_pools::{diesel, database};
 use rocket::fairing::AdHoc;
-use rocket::response::{Debug, status::Created};
-use rocket::serde::{Serialize, Deserialize, json::Json};
+use rocket::serde::{Serialize, Deserialize};
 
 #[database("mcc_recipes")]
-pub struct Db(diesel::SqliteConnection);
+pub struct DbConn(diesel::SqliteConnection);
 
 #[derive(Debug, Clone, Deserialize, Serialize, Queryable, Insertable)]
 #[serde(crate = "rocket::serde")]
@@ -21,6 +19,6 @@ struct RecipeInternal {
 
 pub fn stage() -> AdHoc {
     AdHoc::on_ignite("Diesel SQLite Stage", |rocket| async {
-        rocket.attach(Db::fairing())
+        rocket.attach(DbConn::fairing())
     })
 }
