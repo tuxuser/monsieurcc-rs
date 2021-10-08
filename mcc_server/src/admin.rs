@@ -1,13 +1,19 @@
-use monsieurcc::{api::Api, schemas::{
-    Recipe, RecipeType,
-}};
+/// Endpoints called by managment frontend
+use monsieurcc::{
+    api::Api,
+    schemas::{Recipe, RecipeType},
+};
 use rocket::{
     serde::json::Json,
-    serde::{Serialize,Deserialize},
+    serde::{Deserialize, Serialize},
     Route,
 };
 
-use crate::db;
+use crate::{
+    db::{self, RecipeInternal},
+    schema,
+};
+use diesel::RunQueryDsl;
 
 #[derive(Serialize, Deserialize, Debug)]
 struct FetchSettings {
@@ -16,7 +22,10 @@ struct FetchSettings {
 }
 
 #[post("/recipes/sync", data = "<fetch_settings>")]
-async fn sync_recipes(db: db::DbConn, fetch_settings: Json<FetchSettings>) -> Result<Json<Vec<Recipe>>, String> {
+async fn sync_recipes(
+    db: db::DbConn,
+    fetch_settings: Json<FetchSettings>,
+) -> Result<Json<Vec<Recipe>>, String> {
     let api = Api::new(&fetch_settings.language);
 
     let ret = api
@@ -25,24 +34,31 @@ async fn sync_recipes(db: db::DbConn, fetch_settings: Json<FetchSettings>) -> Re
 
     match ret {
         Ok(recipes) => {
-            let _ = recipes.iter()
+            let rows: Vec<RecipeInternal> = recipes
+                .iter()
                 .map(|r| {
-                    (r, serde_json::to_string(r).unwrap())
+                    RecipeInternal::new(
+                        r.data.name.clone(),
+                        serde_json::to_string(r).unwrap(),
+                        None,
+                    )
                 })
-                .for_each(|(r, serialized)| {
-                    // TODO: Init DB rows
-                });
+                .collect();
 
-            // TODO: Batch insert into DB
+            db.run(move |conn| {
+                diesel::insert_into(schema::recipes::table)
+                    .values(&rows)
+                    .execute(conn)
+            })
+            .await
+            .expect("Failed to batch insert synced recipes");
 
             Ok(Json(recipes))
-        },
+        }
         Err(e) => Err(format!("Failed to download recipes, err: {:?}", e)),
     }
 }
 
 pub(crate) fn routes() -> Vec<Route> {
-    routes![
-        sync_recipes
-    ]
+    routes![sync_recipes]
 }

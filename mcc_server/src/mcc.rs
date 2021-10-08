@@ -1,7 +1,12 @@
-use crate::{db,schema::recipes,utils::{
-    generate_auth_token, get_user_from_credentials, get_user_from_token, is_registration_valid,
-}};
-use diesel::{RunQueryDsl, query_dsl::methods::SelectDsl};
+/// Endpoints called by local MCC
+use crate::{
+    db,
+    schema::recipes,
+    utils::{
+        generate_auth_token, get_user_from_credentials, get_user_from_token, is_registration_valid,
+    },
+};
+use diesel::{query_dsl::methods::SelectDsl, RunQueryDsl};
 use monsieurcc::schemas::{
     AuthenticationRequest, AuthenticationResponse, Event, MachineConfig, MachineConfigResponse,
     Recipe, RecipeIds, RegistrationRequest, UserData, UserSettings,
@@ -64,12 +69,12 @@ fn post_userdata(data: Json<UserSettings>) -> (Status, (ContentType, &'static st
     (Status::Created, (ContentType::Plain, "Created"))
 }
 
-#[get("/machineconfig/<machine_id>")]
+#[get("/machineconfig/<secure_serial>")]
 fn get_machineconfig(
-    machine_id: String,
+    secure_serial: String,
 ) -> Result<Json<MachineConfigResponse>, Unauthorized<&'static str>> {
     let response = MachineConfigResponse {
-        seserial: machine_id,
+        seserial: secure_serial,
         config: MachineConfig {
             updatelocation: "http://someserver.com/<uuid4>/".to_owned(),
         },
@@ -98,20 +103,15 @@ fn remove_recipe_from_favorites(_recipe_id: u32) -> NoContent {
 #[get("/recipe/all")]
 async fn get_recipe_all(db: db::DbConn) -> Result<Json<Vec<Recipe>>, Unauthorized<&'static str>> {
     // TODO: Check X-Recipe-Type header
-    let result: Result<Vec<String>, diesel::result::Error> = db.run(move |conn| {
-        recipes::table
-            .select(recipes::json_data)
-            .load(conn)
-    }).await;
+    let result: Result<Vec<String>, diesel::result::Error> = db
+        .run(move |conn| recipes::table.select(recipes::json_data).load(conn))
+        .await;
 
     let recipes = match result {
-        Ok(recipe_strs) => {
-            recipe_strs.iter()
-                .map(|s| {
-                    serde_json::from_str(&s).unwrap()
-                })
-                .collect()
-        },
+        Ok(recipe_strs) => recipe_strs
+            .iter()
+            .map(|s| serde_json::from_str(s).unwrap())
+            .collect(),
         Err(_) => {
             return Err(Unauthorized(Some("Crap...")));
         }
@@ -122,16 +122,12 @@ async fn get_recipe_all(db: db::DbConn) -> Result<Json<Vec<Recipe>>, Unauthorize
 
 #[get("/recipe/ids")]
 async fn get_recipe_ids(db: db::DbConn) -> Result<Json<RecipeIds>, Unauthorized<&'static str>> {
-    let result: Result<Vec<i32>, diesel::result::Error> = db.run(move |conn| {
-        recipes::table
-            .select(recipes::id)
-            .load(conn)
-    }).await;
+    let result: Result<Vec<i32>, diesel::result::Error> = db
+        .run(move |conn| recipes::table.select(recipes::id).load(conn))
+        .await;
 
     let recipe_ids = match result {
-        Ok(recipe_ids) => {
-            RecipeIds { ids: recipe_ids }
-        },
+        Ok(recipe_ids) => RecipeIds { ids: recipe_ids },
         Err(_) => {
             return Err(Unauthorized(Some("Crap...")));
         }
