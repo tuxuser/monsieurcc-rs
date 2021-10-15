@@ -110,7 +110,15 @@ async fn get_recipe_all(db: db::DbConn) -> Result<Json<Vec<Recipe>>, Unauthorize
     let recipes = match result {
         Ok(recipe_strs) => recipe_strs
             .iter()
-            .map(|s| serde_json::from_str(s).unwrap())
+            .map(|s| {
+                let mut json: Recipe = serde_json::from_str(s).unwrap();
+
+                // FIXME: Remove image rewrite
+                json.data.image_base = "http://mcc.example.com/recipe_images/".to_string();
+                json.data.image_name = "dummy.jpg".to_string();
+
+                json
+            })
             .collect(),
         Err(_) => {
             return Err(Unauthorized(Some("Crap...")));
