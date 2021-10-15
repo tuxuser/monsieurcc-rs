@@ -42,7 +42,7 @@ struct RecipeOptions {
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args = Opt::from_args();
-    let api = Api::new("");
+    let api = Api::new();
 
     match args.cmd {
         Command::Recipes(opts) => {
@@ -60,7 +60,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
             println!("Downloading recipes ({:?})...", &opts);
             match api
-                .get_recipes(Some(&opts.language), Some(opts.recipe_type.clone()))
+                .get_recipes(&opts.language, Some(opts.recipe_type.clone()))
                 .await
             {
                 Ok(recipes) => match serde_json::ser::to_string(&recipes) {
