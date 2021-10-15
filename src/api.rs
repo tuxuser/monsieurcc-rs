@@ -6,18 +6,13 @@ use reqwest::header::ACCEPT_LANGUAGE;
 /// Api provides a client for fetching APK updates and recipes
 pub struct Api {
     session: reqwest::Client,
-    default_language: String,
 }
 
 impl Api {
     /// Create new instance of Api
-    ///
-    /// Language is provided in ISO 639-1 format
-    //  (e.g. "de", "it", "fr", "pl", "en", "es")
-    pub fn new(language: &str) -> Self {
+    pub fn new() -> Self {
         Self {
-            session: reqwest::Client::new(),
-            default_language: language.to_string(),
+            session: reqwest::Client::new()
         }
     }
 }
@@ -63,17 +58,18 @@ impl Api {
 // Recipes
 impl Api {
     /// Helper function to wrap calls against Recipe endpoint
+    /// Language is provided in ISO 639-1 format
+    //  (e.g. "de", "it", "fr", "pl", "en", "es")
     async fn get_recipe_endpoint(
         &self,
         endpoint: &str,
-        language: Option<&str>,
+        language: &str,
         recipe_type: Option<RecipeType>,
     ) -> Result<reqwest::Response> {
         let recipe_type = recipe_type
             .or(Some(RecipeType::Default))
             .unwrap()
             .to_string();
-        let language = language.or(Some(&self.default_language)).unwrap();
 
         let url = Api::create_url(&format!("/mcc/api/v1/recipe/{}", endpoint))?;
         let result = self
@@ -90,7 +86,7 @@ impl Api {
     /// Get recipe ids for particular language / recipe type
     pub async fn get_recipe_ids(
         &self,
-        language: Option<&str>,
+        language: &str,
         recipe_type: Option<RecipeType>,
     ) -> Result<Vec<i32>> {
         let result = self
@@ -106,7 +102,7 @@ impl Api {
     pub async fn get_recipe(
         &self,
         id: u32,
-        language: Option<&str>,
+        language: &str,
         recipe_type: Option<RecipeType>,
     ) -> Result<schemas::Recipe> {
         let result = self
@@ -121,7 +117,7 @@ impl Api {
     /// Get all recipes for particular language / recipe type
     pub async fn get_recipes(
         &self,
-        language: Option<&str>,
+        language: &str,
         recipe_type: Option<RecipeType>,
     ) -> Result<Vec<schemas::Recipe>> {
         let result = self
@@ -141,14 +137,9 @@ mod tests {
     use mockito::mock;
     use rstest::*;
 
-    const DEFAULT_LANGUAGE: &str = "de";
-
     #[fixture]
     fn client() -> Api {
-        Api {
-            session: reqwest::Client::new(),
-            default_language: DEFAULT_LANGUAGE.into(),
-        }
+        Api::new()
     }
 
     #[rstest]
@@ -171,21 +162,19 @@ mod tests {
     }
 
     #[rstest]
-    #[case::de_beta(Some("de"), Some(RecipeType::Beta))]
-    #[case::de_none(Some("de"), None)]
-    #[case::en_default(Some("en"), Some(RecipeType::Default))]
-    #[case::en_none(Some("en"), None)]
-    #[case::fr_live(Some("fr"), Some(RecipeType::Live))]
-    #[case::fr_none(Some("fr"), None)]
-    #[case::pl_default(Some("pl"), Some(RecipeType::Default))]
-    #[case::pl_none(Some("pl"), None)]
-    #[case::es_beta(Some("es"), Some(RecipeType::Beta))]
-    #[case::none_live(None, Some(RecipeType::Live))]
-    #[case::none_none(None, None)]
+    #[case::de_beta("de", Some(RecipeType::Beta))]
+    #[case::de_none("de", None)]
+    #[case::en_default("en", Some(RecipeType::Default))]
+    #[case::en_none("en", None)]
+    #[case::fr_live("fr", Some(RecipeType::Live))]
+    #[case::fr_none("fr", None)]
+    #[case::pl_default("pl", Some(RecipeType::Default))]
+    #[case::pl_none("pl", None)]
+    #[case::es_beta("es", Some(RecipeType::Beta))]
     #[tokio::test]
     async fn get_recipe_ids(
         client: Api,
-        #[case] language: Option<&str>,
+        #[case] language: &str,
         #[case] recipe_type: Option<RecipeType>,
     ) {
         let body = get_testdata("recipe_ids.json").expect("Failed to get testdata");
@@ -195,10 +184,9 @@ mod tests {
             .or(Some(&RecipeType::Default))
             .unwrap()
             .to_string();
-        let language_str = language.or(Some(DEFAULT_LANGUAGE)).unwrap().to_string();
 
         let _m = mock("GET", "/mcc/api/v1/recipe/ids")
-            .match_header(&ACCEPT_LANGUAGE.to_string(), language_str.as_str())
+            .match_header(&ACCEPT_LANGUAGE.to_string(), language)
             .match_header("X-Recipe-Type", recipe_type_str.as_str())
             .with_status(200)
             .with_header("content-type", "application/json")
@@ -214,21 +202,19 @@ mod tests {
     }
 
     #[rstest]
-    #[case::de_beta(Some("de"), Some(RecipeType::Beta))]
-    #[case::de_none(Some("de"), None)]
-    #[case::en_default(Some("en"), Some(RecipeType::Default))]
-    #[case::en_none(Some("en"), None)]
-    #[case::fr_live(Some("fr"), Some(RecipeType::Live))]
-    #[case::fr_none(Some("fr"), None)]
-    #[case::pl_default(Some("pl"), Some(RecipeType::Default))]
-    #[case::pl_none(Some("pl"), None)]
-    #[case::es_beta(Some("es"), Some(RecipeType::Beta))]
-    #[case::none_live(None, Some(RecipeType::Live))]
-    #[case::none_none(None, None)]
+    #[case::de_beta("de", Some(RecipeType::Beta))]
+    #[case::de_none("de", None)]
+    #[case::en_default("en", Some(RecipeType::Default))]
+    #[case::en_none("en", None)]
+    #[case::fr_live("fr", Some(RecipeType::Live))]
+    #[case::fr_none("fr", None)]
+    #[case::pl_default("pl", Some(RecipeType::Default))]
+    #[case::pl_none("pl", None)]
+    #[case::es_beta("es", Some(RecipeType::Beta))]
     #[tokio::test]
     async fn get_recipe(
         client: Api,
-        #[case] language: Option<&str>,
+        #[case] language: &str,
         #[case] recipe_type: Option<RecipeType>,
     ) {
         let body = get_testdata("recipe_single_25011.json").expect("Failed to get testdata");
@@ -238,10 +224,9 @@ mod tests {
             .or(Some(&RecipeType::Default))
             .unwrap()
             .to_string();
-        let language_str = language.or(Some(DEFAULT_LANGUAGE)).unwrap().to_string();
 
         let _m = mock("GET", "/mcc/api/v1/recipe/25011")
-            .match_header(&ACCEPT_LANGUAGE.to_string(), language_str.as_str())
+            .match_header(&ACCEPT_LANGUAGE.to_string(), language)
             .match_header("X-Recipe-Type", recipe_type_str.as_str())
             .with_status(200)
             .with_header("content-type", "application/json")
@@ -257,21 +242,19 @@ mod tests {
     }
 
     #[rstest]
-    #[case::de_beta(Some("de"), Some(RecipeType::Beta))]
-    #[case::de_none(Some("de"), None)]
-    #[case::en_default(Some("en"), Some(RecipeType::Default))]
-    #[case::en_none(Some("en"), None)]
-    #[case::fr_live(Some("fr"), Some(RecipeType::Live))]
-    #[case::fr_none(Some("fr"), None)]
-    #[case::pl_default(Some("pl"), Some(RecipeType::Default))]
-    #[case::pl_none(Some("pl"), None)]
-    #[case::es_beta(Some("es"), Some(RecipeType::Beta))]
-    #[case::none_live(None, Some(RecipeType::Live))]
-    #[case::none_none(None, None)]
+    #[case::de_beta("de", Some(RecipeType::Beta))]
+    #[case::de_none("de", None)]
+    #[case::en_default("en", Some(RecipeType::Default))]
+    #[case::en_none("en", None)]
+    #[case::fr_live("fr", Some(RecipeType::Live))]
+    #[case::fr_none("fr", None)]
+    #[case::pl_default("pl", Some(RecipeType::Default))]
+    #[case::pl_none("pl", None)]
+    #[case::es_beta("es", Some(RecipeType::Beta))]
     #[tokio::test]
     async fn get_recipes_all(
         client: Api,
-        #[case] language: Option<&str>,
+        #[case] language: &str,
         #[case] recipe_type: Option<RecipeType>,
     ) {
         let recipe_type_str = recipe_type
@@ -279,13 +262,12 @@ mod tests {
             .or(Some(&RecipeType::Default))
             .unwrap()
             .to_string();
-        let language_str = language.or(Some(DEFAULT_LANGUAGE)).unwrap().to_string();
 
         let filename = format!("recipe_all_{}.json", recipe_type_str);
         let body = get_testdata(&filename).expect("Failed to get testdata");
 
         let _m = mock("GET", "/mcc/api/v1/recipe/all")
-            .match_header(&ACCEPT_LANGUAGE.to_string(), language_str.as_str())
+            .match_header(&ACCEPT_LANGUAGE.to_string(), language)
             .match_header("X-Recipe-Type", recipe_type_str.as_str())
             .with_status(200)
             .with_header("content-type", "application/json")
