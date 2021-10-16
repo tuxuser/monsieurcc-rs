@@ -1,3 +1,4 @@
+use std::convert::TryInto;
 use diesel::QueryDsl;
 /// Endpoints called by managment frontend
 use monsieurcc::{
@@ -6,7 +7,7 @@ use monsieurcc::{
 };
 use rocket::{Route, serde::json::Json, serde::{Deserialize, Serialize}};
 
-use crate::{db::{self, NewRecipeInternal, RecipeInternal, ShortRecipeInternal}, schema};
+use crate::{db::{self, NewRecipeInternal, RecipeInternal, RecipeShort}, schema};
 use crate::diesel::RunQueryDsl;
 
 
@@ -34,6 +35,11 @@ async fn sync_recipes(
                     NewRecipeInternal {
                         name: r.data.name.clone(),
                         json_data: serde_json::to_string(r).unwrap(),
+                        image_file: None,
+                        lang: Some(fetch_settings.language.clone()),
+                        original_id: Some(r.data.id.try_into().unwrap()),
+                        is_custom: Some(false),
+                        recipe_type: Some(fetch_settings.recipe_type.to_string())
                     }
                 })
                 .collect();
@@ -60,12 +66,12 @@ async fn update_images() -> &'static str {
 }
 
 #[get("/recipes/overview")]
-async fn get_overview(db: db::DbConn) -> Json<Vec<ShortRecipeInternal>> {
+async fn get_overview(db: db::DbConn) -> Json<Vec<RecipeShort>> {
     let result = db
         .run(move |conn| {
             schema::recipes::table
                 .select((schema::recipes::id, schema::recipes::name, schema::recipes::image_file))
-                .load::<ShortRecipeInternal>(conn)
+                .load::<RecipeShort>(conn)
         })
         .await
         .unwrap();
