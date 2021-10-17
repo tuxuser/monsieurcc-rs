@@ -11,6 +11,7 @@ pub mod guard;
 pub mod mcc;
 pub mod schema;
 pub mod utils;
+pub mod frontend;
 pub mod images;
 
 use std::{sync::mpsc, thread};
@@ -56,15 +57,13 @@ pub(crate) struct MccConfig {
 
 #[launch]
 fn rocket() -> _ {
-    
-
     rocket::build()
         .attach(db::DbConn::fairing())
         .attach(AdHoc::on_ignite("Run Migrations", run_migrations))
         .attach(AdHoc::on_ignite("Spawn import worker", spawn_image_import_worker))
+        .mount("/", frontend::routes())
         .mount("/mcc/api/v1", mcc::routes())
         .mount("/admin", admin::routes())
-        .mount("/static", FileServer::from("static"))
         .mount("/recipe_images", FileServer::from("recipe_images"))
         .attach(AdHoc::config::<MccConfig>())
 }
