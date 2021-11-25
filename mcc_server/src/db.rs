@@ -35,4 +35,4 @@ pub(crate) struct RecipeShort {
     pub id: i32,
     pub name: String,
     pub image_file: Option<String>,
-} 
+}

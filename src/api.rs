@@ -1,4 +1,7 @@
-use crate::{Result, schemas::{self, RecipeType}};
+use crate::{
+    schemas::{self, RecipeType},
+    Result,
+};
 #[cfg(test)]
 use mockito;
 use reqwest::header::ACCEPT_LANGUAGE;
@@ -12,7 +15,7 @@ impl Api {
     /// Create new instance of Api
     pub fn new() -> Self {
         Self {
-            session: reqwest::Client::new()
+            session: reqwest::Client::new(),
         }
     }
 }
@@ -52,6 +55,62 @@ impl Api {
             .collect::<Vec<String>>();
 
         Ok(apk_urls)
+    }
+
+    /// Get machine config metadata / APK updates by serial numer
+    pub async fn get_apk_updates_for_machine(&self, serial: String) -> Result<Vec<String>> {
+        let machineconfig = self.get_machine_config(serial).await?;
+
+        // Fetch actual APK list from server
+        let update_url = Api::create_url(&format!(
+            "{}/{}",
+            machineconfig.config.updatelocation, "versions.txt"
+        ))?;
+        let updates = self.session.get(update_url).send().await?.text().await?;
+
+        let apk_urls = updates
+            .trim_end()
+            .split('\n')
+            .map(|x| {
+                let url =
+                    Api::create_url(&format!("{}/{}", machineconfig.config.updatelocation, x))
+                        .expect("Failed to create URL");
+
+                url.to_string()
+            })
+            .collect::<Vec<String>>();
+
+        Ok(apk_urls)
+    }
+}
+
+// Machine
+impl Api {
+    const SERIAL_NUMBER_SAMPLE: &'static str = "4C5BAB5600000012-0000";
+
+    /// Get machine config by serial numer
+    pub async fn get_machine_config(
+        &self,
+        serial: String,
+    ) -> Result<schemas::MachineConfigResponse> {
+        if serial.len() != Api::SERIAL_NUMBER_SAMPLE.len() {
+            return Err(format!(
+                "Invalid serial number format, expecting: {}",
+                Api::SERIAL_NUMBER_SAMPLE
+            )
+            .into());
+        }
+
+        let url = Api::create_url(&format!("/mcc/api/v1/machineconfig/{}", serial))?;
+        let result = self
+            .session
+            .get(url)
+            .send()
+            .await?
+            .json::<schemas::MachineConfigResponse>()
+            .await?;
+
+        Ok(result)
     }
 }
 

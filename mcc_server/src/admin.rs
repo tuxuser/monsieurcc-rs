@@ -1,15 +1,21 @@
-use std::convert::TryInto;
 use diesel::QueryDsl;
 /// Endpoints called by managment frontend
 use monsieurcc::{
     api::Api,
     schemas::{Recipe, RecipeType},
 };
-use rocket::{Route, serde::json::Json, serde::{Deserialize, Serialize}};
+use rocket::{
+    serde::json::Json,
+    serde::{Deserialize, Serialize},
+    Route,
+};
+use std::convert::TryInto;
 
-use crate::{db::{self, NewRecipeInternal, RecipeInternal, RecipeShort}, schema};
 use crate::diesel::RunQueryDsl;
-
+use crate::{
+    db::{self, NewRecipeInternal, RecipeInternal, RecipeShort},
+    schema,
+};
 
 #[derive(Serialize, Deserialize, Debug)]
 struct FetchSettings {
@@ -23,7 +29,10 @@ async fn sync_recipes(
     fetch_settings: Json<FetchSettings>,
 ) -> Result<Json<Vec<Recipe>>, String> {
     let ret = Api::new()
-        .get_recipes(&fetch_settings.language, Some(fetch_settings.recipe_type.clone()))
+        .get_recipes(
+            &fetch_settings.language,
+            Some(fetch_settings.recipe_type.clone()),
+        )
         .await;
 
     match ret {
@@ -31,16 +40,14 @@ async fn sync_recipes(
             // Construct insertable rows
             let rows: Vec<NewRecipeInternal> = r
                 .iter()
-                .map(|r| {
-                    NewRecipeInternal {
-                        name: r.data.name.clone(),
-                        json_data: serde_json::to_string(r).unwrap(),
-                        image_file: None,
-                        lang: Some(fetch_settings.language.clone()),
-                        original_id: Some(r.data.id.try_into().unwrap()),
-                        is_custom: Some(false),
-                        recipe_type: Some(fetch_settings.recipe_type.to_string())
-                    }
+                .map(|r| NewRecipeInternal {
+                    name: r.data.name.clone(),
+                    json_data: serde_json::to_string(r).unwrap(),
+                    image_file: None,
+                    lang: Some(fetch_settings.language.clone()),
+                    original_id: Some(r.data.id.try_into().unwrap()),
+                    is_custom: Some(false),
+                    recipe_type: Some(fetch_settings.recipe_type.to_string()),
                 })
                 .collect();
 
@@ -70,7 +77,11 @@ async fn get_overview(db: db::DbConn) -> Json<Vec<RecipeShort>> {
     let result = db
         .run(move |conn| {
             schema::recipes::table
-                .select((schema::recipes::id, schema::recipes::name, schema::recipes::image_file))
+                .select((
+                    schema::recipes::id,
+                    schema::recipes::name,
+                    schema::recipes::image_file,
+                ))
                 .load::<RecipeShort>(conn)
         })
         .await
@@ -100,5 +111,13 @@ async fn delete_recipe(id: i32) -> Result<Json<RecipeInternal>, &'static str> {
 }
 
 pub(crate) fn routes() -> Vec<Route> {
-    routes![sync_recipes, update_images, get_overview, add_recipe, get_recipe, update_recipe, delete_recipe]
+    routes![
+        sync_recipes,
+        update_images,
+        get_overview,
+        add_recipe,
+        get_recipe,
+        update_recipe,
+        delete_recipe
+    ]
 }

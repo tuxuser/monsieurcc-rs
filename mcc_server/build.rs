@@ -13,5 +13,5 @@ fn main() {
         .output()
         .expect("npm build failed to execute");
 
-    eprintln!("{:?}", result);    
+    eprintln!("{:?}", result);
 }

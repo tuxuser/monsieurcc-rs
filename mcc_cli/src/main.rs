@@ -1,10 +1,6 @@
 use std::path::PathBuf;
 
-use monsieurcc::{
-    api::Api,
-    serde_json,
-    schemas::RecipeType,
-};
+use monsieurcc::{api::Api, schemas::RecipeType, serde_json};
 use structopt::StructOpt;
 
 #[derive(Debug, StructOpt)]
@@ -12,7 +8,7 @@ enum Command {
     /// Download recipes for various languages
     Recipes(RecipeOptions),
     /// Fetch download links for MC2 APK
-    Apk,
+    Apk(ApkOptions),
 }
 
 #[derive(Debug, StructOpt)]
@@ -37,6 +33,12 @@ struct RecipeOptions {
     /// Recipe type (e.g. "default", "live", "beta")
     #[structopt(short = "t", long = "type", default_value = "default")]
     recipe_type: RecipeType,
+}
+
+#[derive(Debug, StructOpt)]
+struct ApkOptions {
+    /// Serial number in format: "4C10000000000000-0000"
+    pub serial_numer: Option<String>,
 }
 
 #[tokio::main]
@@ -88,12 +90,23 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 }
             }
         }
-        Command::Apk => {
+        Command::Apk(opts) => {
             println!("Fetching list of MC2 filenames...");
-            let apks = api
-                .get_apk_updates()
-                .await
-                .expect("Failed to download APK updates");
+            let apks = match opts.serial_numer {
+                Some(serial_num) => {
+                    println!("Using machineinfo endpoint to fetch APK updates...");
+                    api.get_apk_updates_for_machine(serial_num)
+                        .await
+                        .expect("Failed to download APK updates for machine")
+                }
+                None => {
+                    println!("Using legacy way of fetching APK updates...");
+                    println!("! NOTE ! Provide serial number as argument to use non-legacy endpoint");
+                    api.get_apk_updates()
+                        .await
+                        .expect("Failed to download APK updates")
+                }
+            };
 
             println!("== MC2 APK links ==");
             apks.into_iter().enumerate().for_each(|(idx, name)| {
