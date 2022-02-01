@@ -1,2 +1,3 @@
 target/
 Cargo.lock
+mcc_server/db/*.sqlite

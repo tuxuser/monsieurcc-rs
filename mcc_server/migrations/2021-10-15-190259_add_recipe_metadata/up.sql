@@ -1,0 +1,4 @@
+ALTER TABLE recipes ADD COLUMN lang VARCHAR;
+ALTER TABLE recipes ADD COLUMN original_id INTEGER;
+ALTER TABLE recipes ADD COLUMN recipe_type VARCHAR;
+ALTER TABLE recipes ADD COLUMN is_custom BOOLEAN;

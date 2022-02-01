@@ -1,0 +1,11 @@
+[default]
+address = "0.0.0.0"
+port = 80
+limits = { forms = "64 kB", json = "50 MiB" }
+
+[global.databases]
+mcc_recipes = { url = "./db/mcc_recipes.sqlite"}
+
+[global]
+default_language = "de"
+save_beta_recipes_as_live = true

@@ -1,4 +1,39 @@
 use serde::{Deserialize, Serialize};
+use std::str::FromStr;
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(rename_all = "lowercase")]
+pub enum RecipeType {
+    Default,
+    Live,
+    Beta,
+}
+
+impl ToString for RecipeType {
+    fn to_string(&self) -> String {
+        match self {
+            RecipeType::Default => "default".into(),
+            RecipeType::Live => "live".into(),
+            RecipeType::Beta => "beta".into(),
+        }
+    }
+}
+
+impl FromStr for RecipeType {
+    type Err = Box<dyn std::error::Error>;
+
+    fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
+        match s.to_lowercase().as_str() {
+            "default" => Ok(RecipeType::Default),
+            "live" => Ok(RecipeType::Live),
+            "beta" => Ok(RecipeType::Beta),
+            _ => {
+                let e = format!("Invalid string for RecipeType provided: {}", s);
+                Err(e.into())
+            }
+        }
+    }
+}
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
@@ -37,18 +72,18 @@ pub enum StepMode {
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct RecipeIds {
-    pub ids: Vec<u32>,
+    pub ids: Vec<i32>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Recipe {
-    pub data: Data,
+    pub data: RecipeData,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct Data {
+pub struct RecipeData {
     pub id: i64,
     pub new: i64,
     pub name: String,
@@ -158,6 +193,71 @@ pub struct Ingredient {
     pub name: String,
     pub unit: String,
     pub amount: String,
+}
+
+// Non-recipe schemas
+
+#[derive(Deserialize, Serialize, Debug)]
+pub struct RegistrationRequest<'r> {
+    pub password: &'r str,
+    pub displayname: &'r str,
+    pub uid: &'r str,
+}
+
+#[derive(Deserialize, Serialize, Debug)]
+pub struct AuthenticationRequest<'r> {
+    pub username: &'r str,
+    pub password: &'r str,
+}
+
+#[derive(Deserialize, Serialize, Debug)]
+pub struct AuthenticationResponse {
+    pub token: String,
+    pub displayname: String,
+    pub lang: Option<String>,
+}
+
+#[derive(Deserialize, Serialize, Default, Debug)]
+#[serde(default, rename_all = "camelCase")]
+pub struct UserSettings {
+    lidl_data: i8,
+    lidl_newsletter: i8,
+    device_terms_ok: i8,
+    newsletter: i8,
+}
+
+#[derive(Deserialize, Serialize, Default, Debug)]
+pub struct UserData {
+    pub uid: String,
+    pub firstname: Option<String>,
+    pub lastname: Option<String>,
+    pub displayname: String,
+    pub salutation: Option<String>,
+    pub dateofbirth: Option<String>,
+    pub address: Option<String>,
+    pub zip: Option<String>,
+    pub city: Option<String>,
+    pub country: Option<String>,
+    pub settings: UserSettings,
+}
+
+#[derive(Deserialize, Serialize, Debug)]
+pub struct MachineConfig {
+    // Example: https://update32.simplexion.pm/4b606313-3631-4d5f-a856-ca0edecf0c13/
+    pub updatelocation: String,
+}
+
+#[derive(Deserialize, Serialize, Debug)]
+pub struct MachineConfigResponse {
+    /// Serial, example: 4C5BAB5600000012-0000
+    pub seserial: String,
+    pub config: MachineConfig,
+}
+
+#[derive(Deserialize, Serialize, Debug)]
+pub struct Event {
+    seserial: String,
+    data: String,
 }
 
 #[cfg(test)]

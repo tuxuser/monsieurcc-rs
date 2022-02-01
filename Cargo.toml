@@ -12,6 +12,7 @@ homepage = "https://github.com/tuxuser/monsieurcc-rs"
 [workspace]
 members = [
     'mcc_cli',
+    'mcc_server'
 ]
 
 [dependencies]

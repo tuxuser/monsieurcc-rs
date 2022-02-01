@@ -1,0 +1,6 @@
+CREATE TABLE recipes (
+    id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+    name VARCHAR NOT NULL,
+    json_data VARCHAR NOT NULL,
+    image_file VARCHAR
+);
